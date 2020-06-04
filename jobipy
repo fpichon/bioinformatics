@@ -1,0 +1,37 @@
+#!/usr/bin/python2.7
+
+import os
+import sys
+
+def main(argv) :
+	"""
+		This script is aimed to ease job submission with qsub for torque clusters
+		:param argv: a command line where special characters are escaped
+	"""
+	if not argv == [] :
+		current_dir = os.getcwd()
+		print "command submitted: "+" ".join(argv)
+		with open(current_dir+"/command.pbs",'w') as pbs:
+			pbs.write("#!/bin/bash\n\n")
+			pbs.write("#PBS -l nodes=1:ppn=8,walltime=24:00:00\n")
+			pbs.write("#PBS -q local\n")
+			pbs.write("#PBS -N Omicx_job\n")
+			pbs.write("cd $PBS_O_WORKDIR;")
+			pbs.write("licont docker-registry.issb.lab:5000/docker_images/bioinfo:stat \"$PWD/command.sh $PBS_O_WORKDIR\"")
+		with open(current_dir+"/command.sh",'w') as script:
+			script.write("#!/bin/bash\n\n")
+			script.write("cd $1;")
+			script.write(" ".join(argv))
+		os.system("chmod 744 "+current_dir+"/*")
+		os.system("qsub -q local_d "+current_dir+"/command.pbs")
+		os.remove(current_dir+"/command.sh")
+		os.remove(current_dir+"/command.pbs")
+	else :
+		print "You have to indicate a command line. "
+		print "Please, note that you have to escape special characters like |;'\""
+		print "Example :"
+		print "Command line: cut -f9 file.txt | cut -d';' -f7 | sort | uniq -c"
+		print "with jobipy : jobipy cut -f9 file.txt \| cut -d\\'\;\\' -f7 \| sort \| uniq -c"
+
+if __name__ == "__main__":
+   main(sys.argv[1:])
